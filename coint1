@@ -1,0 +1,28 @@
+# Import libraries
+import pandas as pd
+from statsmodels.tsa.stattools import coint
+
+# Define function to read CSV and perform cointegration test
+def check_cointegration(filename):
+  # Read CSV data
+  data = pd.read_csv("/content/sample_data/mnist_train_small.csv")
+
+  # Check for missing values
+  if data.isnull().values.any():
+    print("Warning: Data contains missing values. Please handle them before proceeding.")
+
+  # Define spread (assuming data has price columns for each asset)
+  spread = data.iloc[:, 1:].diff().dropna()
+
+  # Perform Johansen test for cointegration
+  coint_result = coint(spread.values)
+
+  # Print cointegration test results
+  print(f"Cointegration Test Results for {filename}:")
+  print(coint_result)
+
+# Get filename from user
+#filename = input("Enter the CSV filename (including path): ")
+
+# Run cointegration test
+check_cointegration("/content/sample_data/mnist_train_small.csv")
