@@ -1,0 +1,40 @@
+import pandas as pd
+from statsmodels.tsa.stattools import adfuller
+
+def load_data(filepath):
+    # Load the CSV file, using the first column as the DataFrame index
+    df = pd.read_csv(filepath, index_col=0)
+    return df
+
+def adf_test(series, autolag='AIC'):
+    """
+    Perform Augmented Dickey-Fuller test on a time series and print the results.
+    """
+    result = adfuller(series, autolag=autolag)
+    print(f"ADF Statistic: {result[0]}")
+    print(f"p-value: {result[1]}")
+    print("Critical Values:")
+    for key, value in result[4].items():
+        print(f"    {key}: {value}")
+
+def test_stationarity(data):
+    """
+    Apply ADF test to each column in the DataFrame.
+    """
+    for column in data.columns:
+        print(f"Testing stationarity for column: {column}")
+        adf_test(data[column])
+        print("\n")
+
+def main():
+    filepath = 'smallset.csv'  # Replace with your actual CSV file path
+    df = load_data(filepath)
+    
+    # Drop any non-numeric columns if necessary (optional)
+    # df = df.select_dtypes(include=[np.number])
+
+    # Perform stationarity tests on each column
+    test_stationarity(df)
+
+if __name__ == "__main__":
+    main()
