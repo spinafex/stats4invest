@@ -1,0 +1,52 @@
+import pandas as pd
+from statsmodels.tsa.stattools import adfuller
+
+def load_data(filepath):
+    # Load the CSV file, using the first column as the DataFrame index
+    df = pd.read_csv(filepath, index_col=0)
+    return df
+
+def adf_test(series, significance=0.01):
+    """
+    Perform Augmented Dickey-Fuller test on a time series.
+    Returns True if the series is stationary at the given significance level, otherwise False.
+    """
+    result = adfuller(series, autolag='AIC')
+    adf_statistic = result[0]
+    critical_value = result[4]['1%']  # Retrieve the critical value for 1% significance
+    return adf_statistic < critical_value  # True if series is stationary
+
+def screen_stationarity(data):
+    """
+    Screens each column in the DataFrame for stationarity and returns list of stationary columns.
+    """
+    stationary_columns = []
+    for column in data.columns:
+        if adf_test(data[column]):
+            stationary_columns.append(column)
+    return stationary_columns
+
+def main():
+    filepath = 'smallset.csv'  # Replace with your actual CSV file path
+    df = load_data(filepath)
+    
+    # Screen for stationary columns and get the list
+    stationary_list = screen_stationarity(df)
+    total_columns = len(df.columns)
+    num_stationary = len(stationary_list)
+    percentage_stationary = (num_stationary / total_columns) * 100
+    
+    # Print the results
+    print(f"Total Columns Tested: {total_columns}")
+    print(f"Number of Stationary Columns at 1% Significance Level: {num_stationary}")
+    print(f"Percentage of Stationary Columns: {percentage_stationary:.2f}%")
+    
+    if stationary_list:
+        print("Stationary columns at 1% significance level:")
+        for column in stationary_list:
+            print(column)
+    else:
+        print("No stationary columns found at 1% significance level.")
+
+if __name__ == "__main__":
+    main()
