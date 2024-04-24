@@ -1,0 +1,77 @@
+Why Three Eigenvalues?
+Here’s why the test still produces three eigenvalues:
+
+Mathematical Basis: The Johansen test methodology involves estimating a system of equations and analyzing the rank of a particular matrix (the matrix derived from the estimated coefficients of the vector error correction model). The eigenvalues derived from this matrix (via eigenvalue decomposition) represent the strength of the long-run relationships between the variables.
+Testing for Rank: Each eigenvalue effectively tests whether adding another cointegrating relationship (another rank to the matrix) significantly improves the model's explanation of the data. The eigenvalues are indicators of how much each additional rank (or cointegrating vector) contributes to the explanation of the system dynamics.
+Hypothesis Testing Sequence: The Johansen test sequentially tests the null hypothesis of r cointegrating vectors against the alternative of more than r cointegrating vectors. For three variables:
+Test for r = 0 (no cointegration) against more than 0.
+Test for r ≤ 1 against more than 1.
+Test for r ≤ 2 against more than 2.
+
+Practical Usage of the Eigenvalues:
+Despite generating three eigenvalues for three series, the interpretation involves:
+
+Evaluating each eigenvalue against critical values to determine if adding another cointegrating vector (beyond the current count hypothesized under the null) provides statistically significant information.
+Often, not all eigenvalues will lead to rejection of their respective null hypotheses. If, for instance, the third eigenvalue does not lead to a rejection of the hypothesis that there are at most two cointegrating vectors, then we conclude there are only two cointegrating relationships, even though three eigenvalues were analyzed.
+
+Eigenvalues:
+[0.32421179 0.16969823 0.03101664]
+
+Eigenvalue Test Statistic:
+[73.121934   26.0968684   3.78094113]
+
+Critical Values (90%, 95%, 99%):
+[[21.7781 24.2761 29.5147]
+ [10.4741 12.3212 16.364 ]
+ [ 2.9762  4.1296  6.9406]]
+
+From the results you provided from the Johansen cointegration test, we can make several deductions about the potential cointegrating relationships among the time series data. Here's how you would interpret the results based on the eigenvalues, test statistics, and critical values given:
+
+1. Eigenvalues
+The eigenvalues represent the strength of each potential cointegrating relationship. Larger values suggest a stronger cointegrating relationship. Here, the first eigenvalue (0.32421179) is significantly larger than the others, suggesting a potentially strong cointegrating relationship. The second eigenvalue (0.16969823) is moderate, and the third is quite small (0.03101664).
+2. Eigenvalue Test Statistic
+These statistics represent the test statistic for the hypothesis corresponding to each cointegrating vector. For example, the first statistic (73.121934) tests the null hypothesis of no cointegrating relationships against the alternative of at least one.
+The second statistic (26.0968684) tests the null hypothesis of at most one cointegrating relationship against the alternative of at least two.
+The third statistic (3.78094113) tests the null hypothesis of at most two cointegrating relationships against the alternative of three.
+3. Critical Values
+These are the threshold values for the 90%, 95%, and 99% confidence levels. To reject the null hypothesis of r cointegrating relationships, the test statistic needs to exceed the critical value at the desired confidence level.
+Interpretation:
+First Test (r = 0 against more than 0):
+Test Statistic: 73.121934
+Critical Values: 21.7781 (90%), 24.2761 (95%), 29.5147 (99%)
+Conclusion: Since the test statistic significantly exceeds even the 99% critical value, we reject the null hypothesis of no cointegrating relationships. Thus, there is evidence of at least one cointegrating relationship.
+Second Test (r ≤ 1 against more than 1):
+Test Statistic: 26.0968684
+Critical Values: 10.4741 (90%), 12.3212 (95%), 16.364 (99%)
+Conclusion: The test statistic also exceeds the 99% critical value here, so we reject the null hypothesis of at most one cointegrating relationship. This indicates evidence of at least two cointegrating relationships.
+Third Test (r ≤ 2 against more than 2):
+Test Statistic: 3.78094113
+Critical Values: 2.9762 (90%), 4.1296 (95%), 6.9406 (99%)
+Conclusion: The test statistic exceeds the 90% critical value but does not exceed the 95% critical value. This suggests weaker evidence for the third cointegrating relationship. Depending on your confidence requirement, you might conclude that there are at most two significant cointegrating relationships.
+
+Testing stationarity for column: AFG
+ADF Statistic: -2.6827921455328267
+p-value: 0.07706360697015112
+Critical Values:
+    1%: -3.487517288664615
+    5%: -2.8865777180380032
+    10%: -2.5801239192052012
+
+ADF Statistic
+ADF Statistic: -2.6827921455328267
+This statistic is the result of the ADF test. More negative values indicate stronger evidence against the null hypothesis, which in this test is that the series has a unit root (i.e., it is non-stationary).
+p-value
+p-value: 0.07706360697015112
+The p-value indicates the probability that you would see the observed results if the null hypothesis were true. In other words, it is the probability that the time series has a unit root.
+A lower p-value (commonly < 0.05 or 0.01, depending on the level of significance desired) would suggest rejecting the null hypothesis, thus indicating stationarity. Here, the p-value is approximately 0.077, which is greater than 0.05. This suggests that there is not enough evidence to reject the null hypothesis at the 5% significance level.
+Critical Values
+Critical Values:
+1%: -3.487517288664615
+5%: -2.8865777180380032
+10%: -2.5801239192052012
+These values represent the threshold statistics for rejecting the null hypothesis at the respective confidence levels. For example, to reject the null hypothesis at a 5% significance level (95% confidence), the ADF statistic must be more negative than -2.8866.
+Interpretation
+The ADF statistic of -2.6828 does not exceed (in absolute value) any of the critical values. It is not more negative than -2.8866 (the critical value for 5%) nor -3.4875 (the critical value for 1%). Therefore, you cannot reject the null hypothesis at these commonly used levels of significance.
+The results suggest that there is insufficient evidence to conclude that the series is stationary. Hence, it may be non-stationary at the 5% significance level.
+Conclusion
+Given that both the p-value is above 0.05 and the ADF statistic does not sufficiently exceed the critical values for typical levels of significance, the data suggests maintaining the assumption of non-stationarity for the "AFG" time series. This implies that the series might require differencing or some form of transformation to achieve stationarity, which is a typical prerequisite for many types of time series analysis, particularly forecasting models.
