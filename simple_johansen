@@ -1,0 +1,31 @@
+import pandas as pd
+from statsmodels.tsa.vector_ar.vecm import coint_johansen
+
+def load_data(filepath):
+    # Load the CSV file, skipping the first column assuming it contains date information
+    df = pd.read_csv(filepath, index_col=0)
+    return df
+
+def johansen_test(data, det_order=-1, k_ar_diff=1):
+    # Ensure data is numeric and handle any possible conversion issues
+    data = data.apply(pd.to_numeric, errors='coerce')
+    # Drop rows with NaN values that might have resulted from non-numeric to numeric conversion
+    data = data.dropna()
+    # Perform Johansen cointegration test
+    result = coint_johansen(data, det_order, k_ar_diff)
+    print("Eigenvalues:")
+    print(result.eig)  # Eigenvalues
+    print("\nEigenvalue Test Statistic:")
+    print(result.lr1)  # Test statistic for each eigenvalue
+    print("\nCritical Values (90%, 95%, 99%):")
+    print(result.cvt)  # Critical values for each test
+
+def main():
+    filepath = 'wui.csv'  # Replace with your actual CSV file path
+    df = load_data(filepath)
+    # Select columns for cointegration test, adjust as necessary based on your data
+    data_to_test = df.iloc[:, 7:10]  # Adjust the range as per the actual columns to be tested
+    johansen_test(data_to_test)
+
+if __name__ == "__main__":
+    main()
