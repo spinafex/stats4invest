@@ -1,0 +1,69 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from scipy.stats import norm
+
+# Function to compute Cornish-Fisher expansions
+def cornish_fisher(mean, std, skew, kurt, alpha):
+    z_alpha = norm.ppf(alpha)
+    z_var = z_alpha + (z_alpha**3 - z_alpha) * skew / 6 + (z_alpha**5 - 3*z_alpha**3) * kurt / 24
+    var = mean - std * z_var
+    es = mean - std * norm.pdf(z_alpha) / (1 - alpha)
+    return var, es
+
+# Function to ensure monotonicity
+def ensure_monotonicity(skew, kurt):
+    if abs(skew) >= np.sqrt(2) - 1:
+        skew = (np.sqrt(2) - 1) * np.sign(skew)
+    if 9 * kurt**2 - (3 + 33 * skew**2) * kurt + 30 * skew**4 + 7 * skew**2 > 0:
+        kurt = (3 + 33 * skew**2 + np.sqrt((3 + 33 * skew**2)**2 - 270 * (skew**4 + 2 * skew**2))) / 18
+    return skew, kurt
+
+# Load data
+data_files = ['FSMEX.csv']  # List of CSV file paths
+data = []
+for file in data_files:
+    df = pd.read_csv(file, usecols=lambda x: x != 'Date')  # Exclude 'Date' column
+    numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+    data.append(df[numeric_cols].values)  # Convert to numpy array
+
+# Preprocess data
+scaler = StandardScaler()
+for i, arr in enumerate(data):
+    data[i] = scaler.fit_transform(arr)
+
+# Define LSTM model
+model = Sequential()
+model.add(LSTM(64, input_shape=(None, data[0].shape[1])))
+model.add(Dense(data[0].shape[1], activation='linear'))  # Change the output layer size
+
+# Compile the model
+model.compile(optimizer='adam', loss='mse')
+
+# Train model
+for df in data:
+    X, y = [], []
+    for i in range(len(df) - 1):
+        X.append(df[i].reshape(1, df.shape[1]))  # Reshape to (1, num_features)
+        y.append(df[i+1])
+    X, y = np.array(X), np.array(y)
+    model.fit(X, y, epochs=100, batch_size=1, verbose=0)  # Set batch_size=1
+
+# Forecast moments
+forecasts = []
+for df in data:
+    forecast = model.predict(df[-1].reshape(1, 1, 1))
+    forecasts.append(forecast)
+
+# Compute VaR and ES
+alpha = 0.01  # Confidence level
+for i, forecast in enumerate(forecasts):
+    mean, std, skew, kurt = forecast
+    skew, kurt = ensure_monotonicity(skew, kurt)
+    var, es = cornish_fisher(mean, std, skew, kurt, alpha)
+    print(f"Time Series {i+1}:")
+    print(f"VaR ({100*(1-alpha)}%): {var:.4f}")
+    print(f"ES ({100*(1-alpha)}%): {es:.4f}")
+    print()
