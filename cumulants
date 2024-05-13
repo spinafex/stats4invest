@@ -1,0 +1,52 @@
+import numpy as np
+
+def calculate_moments_cumulants(data_file):
+  """
+  Calculates moments (mean, variance, skewness, kurtosis) and cumulants of adjusted closing prices in a CSV file.
+
+  Args:
+      data_file (str): Path to the CSV file containing daily prices.
+
+  Returns:
+      tuple: A tuple containing (moments, cumulants) as dictionaries.
+  """
+
+  # Read daily prices (skip header row)
+  data = np.genfromtxt(data_file, delimiter=',', skip_header=1)
+
+  # Extract adjusted closing prices (use column index for clarity)
+  adjusted_closes = data[:, 5]
+
+  # Calculate daily price changes
+  daily_changes = np.diff(adjusted_closes)
+
+  # Moments (calculate mean first)
+  moments = {}  # Empty dictionary to store moments
+  moments["mean"] = np.mean(daily_changes)
+
+  # Now that mean is defined, use it for other calculations
+  moments["variance"] = np.var(daily_changes)
+  moments["skewness"] = np.mean((daily_changes - moments["mean"]) ** 3) / np.std(daily_changes)**3
+  moments["kurtosis"] = np.mean((daily_changes - moments["mean"]) ** 4) / np.std(daily_changes)**4 - 3
+
+  # Cumulants (using moment calculations)
+  cumulants = {
+      "mean": moments["mean"],
+      "variance": moments["variance"],
+      "third_cumulant": np.mean((daily_changes - moments["mean"]) ** 3),  # Central moment
+      "fourth_cumulant": np.mean((daily_changes - moments["mean"]) ** 4) - 3 * moments["variance"]**2  # Central moment
+  }
+
+  return moments, cumulants
+
+# Example usage (replace 'your_data.csv' with your actual file path)
+data_file = 'SCZ.csv'
+moments, cumulants = calculate_moments_cumulants(data_file)
+
+print("Moments:")
+for key, value in moments.items():
+  print(f"{key}: {value:.4f}")
+
+print("\nCumulants:")
+for key, value in cumulants.items():
+  print(f"{key}: {value:.4f}")
