@@ -1,0 +1,17 @@
+import json
+
+def display_json_contents(json_file_path):
+    try:
+        # Open and load the JSON file
+        with open(json_file_path, 'r') as file:
+            json_data = json.load(file)
+            print("Contents of the JSON file:")
+            # Pretty print the JSON data
+            print(json.dumps(json_data, indent=4))
+    except Exception as e:
+        print(f"Error reading or displaying the JSON file: {str(e)}")
+
+# Path to the JSON file in the /content directory
+json_file_path = '/content/CIK0001222397.json'
+
+display_json_contents(json_file_path)
