@@ -1,0 +1,42 @@
+import requests
+import zipfile
+import io
+import json
+
+def download_unzip_and_display_json(url, output_folder, json_file):
+    # Set headers that were found to work
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15',
+        'Referer': 'https://www.sec.gov/Archives/edgar/daily-index/bulkdata/'
+    }
+
+    # Attempt to download the file
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        print("Download successful. Extracting files...")
+        
+        # Use io.BytesIO for in-memory bytes buffer
+        z = zipfile.ZipFile(io.BytesIO(response.content))
+        z.extractall(path=output_folder)
+        print("Files extracted to:", output_folder)
+        
+        # Read and display the JSON file
+        json_file_path = f'{output_folder}/{json_file}'
+        try:
+            with open(json_file_path, 'r') as file:
+                json_data = json.load(file)
+                print("Contents of the JSON file:")
+                print(json.dumps(json_data, indent=4))  # Pretty print the JSON data
+        except Exception as e:
+            print(f"Error reading or displaying the JSON file: {str(e)}")
+    else:
+        print(f"Failed to download the file. Status code: {response.status_code}")
+
+# URL of the zip file
+url = 'https://www.sec.gov/Archives/edgar/daily-index/bulkdata/submissions.zip'
+# Path where the zip file will be extracted
+output_folder = '/content'  # Assuming Google Colab environment
+# JSON file to display
+json_file = 'CIK0001222408.json'
+
+download_unzip_and_display_json(url, output_folder, json_file)
