@@ -1,0 +1,198 @@
+!pip install stable_baselines3
+
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.stattools import coint, adfuller
+from scipy.stats import norm
+from scipy.optimize import minimize
+import stable_baselines3 as sb3
+
+# Load asset price data
+data = pd.read_csv('commodities.csv')
+
+# Handle NaN and missing data
+#data = data.dropna(axis=1, how='any')  # Drop columns with any NaN values
+data = data.fillna(method='ffill')  # Forward-fill remaining NaN values
+
+# Identify columns with string values
+string_cols = data.select_dtypes(include='object').columns
+
+# Drop columns with string values
+data = data.drop(string_cols, axis=1)
+
+# Calculate log returns
+returns = np.log(data).diff().dropna()
+
+# Split data into training and testing sets
+train_data = data.iloc[:int(len(data) * 0.5)]
+test_data = data.iloc[int(len(data) * 0.5):]
+
+# Assuming 'returns' is a DataFrame containing return series for different assets
+# and 'train_data' contains similar data used to train or evaluate cointegration.
+
+from statsmodels.tsa.stattools import coint
+
+# Test for cointegration between all pairs (on training data)
+coint_pairs = []
+print("Starting cointegration testing...")
+for i in range(len(train_data.columns)):
+    for j in range(i+1, len(train_data.columns)):
+        asset1, asset2 = train_data.columns[i], train_data.columns[j]
+        print(f"Testing pair: {asset1}, {asset2}")  # Debugging line
+        
+        # Check data types and content
+        print(f"Data type asset1: {returns[asset1].dtype}, Data type asset2: {returns[asset2].dtype}")
+        print(f"Data preview asset1: {returns[asset1].head()}, Data preview asset2: {returns[asset2].head()}")
+
+        score, pvalue, _ = coint(returns[asset1], returns[asset2])
+
+        # Print p-value for every pair evaluated
+        print(f"P-value for {asset1} and {asset2}: {pvalue:.4f}")
+
+        if pvalue < 0.05:
+            coint_pairs.append((asset1, asset2))
+            print(f"{asset1} and {asset2} are cointegrated with p-value: {pvalue:.4f}")
+
+# Check if any cointegrated pairs were found
+if not coint_pairs:
+    print("No cointegrated pairs found.")
+
+# Dynamic Capital Allocation based on Z-Scores
+portfolio = []
+for pair in coint_pairs:
+    asset1, asset2 = pair
+    spread = train_data[asset1] - train_data[asset2]
+    mean, std = spread.mean(), spread.std()
+    z_score = (spread - mean) / std
+    
+    # Allocate capital based on z-score
+    if z_score.iloc[-1] > 2:
+        portfolio.append((-1, asset1, 1, asset2))
+    elif z_score.iloc[-1] < -2:
+        portfolio.append((1, asset1, -1, asset2))
+
+# Refined Signature Method for Optimal Entry/Exit Timings
+def refined_signature_method(spread, transaction_cost):
+    def loss_function(entry_exit):
+        entry, exit = entry_exit
+        trade_profit = np.maximum(spread.iloc[exit] - spread.iloc[entry] - transaction_cost, 0)
+        return -trade_profit.mean()
+
+    initial_guess = (0, len(spread) - 1)
+    result = minimize(loss_function, initial_guess, method='L-BFGS-B', bounds=[(0, len(spread) - 1), (0, len(spread) - 1)])
+    optimal_entry, optimal_exit = result.x.astype(int)
+    return optimal_entry, optimal_exit
+
+import numpy as np
+import pandas as pd
+from statsmodels.tsa.stattools import adfuller
+from scipy.stats import t  # Import t-distribution
+
+def test_stationarity(x):
+    p_value = adfuller(x.dropna())[1]  # Ensure NaN values are handled
+    return p_value < 0.05
+
+def ergodic_transformation(x, nu, mu, sigma):
+    if nu <= 2:
+        raise ValueError("nu must be greater than 2 for this transformation.")
+    return (x - mu) / sigma * np.sqrt(nu / (nu - 2)) + np.log(nu / (nu - 2))
+
+transformed_data = data.copy()
+print("Starting transformations...")
+for asset in data.columns:
+    print(f"Processing {asset}...")
+    if not test_stationarity(data[asset]):
+        print(f"{asset} is not stationary; fitting t-distribution...")
+        # Fit t-distribution and handle exception if not possible
+        try:
+            nu, mu, sigma = t.fit(data[asset].dropna())  # Drop NaN to avoid fitting issues
+            print(f"Fitted values for {asset} - nu: {nu}, mu: {mu}, sigma: {sigma}")
+            transformed_data[asset] = ergodic_transformation(data[asset], nu, mu, sigma)
+        except Exception as e:
+            print(f"Error fitting t-distribution for {asset}: {e}")
+    else:
+        print(f"{asset} is stationary; no transformation applied.")
+
+import gym
+!pip install shimmy
+from stable_baselines3 import PPO
+from stable_baselines3.common.policies import BasePolicy #, register_policy
+
+# RL Framework for Optimizing Asset Pair Coefficients
+class TradingEnv(gym.Env):
+    def __init__(self, data):
+        self.data = data
+        self.current_step = 0
+        self.portfolio = []
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(len(data.columns),), dtype=np.float32)
+        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(len(data.columns),), dtype=np.float32)
+
+    def reset(self):
+        self.current_step = 0
+        self.portfolio = []
+        return self._get_observation()
+
+    def step(self, action):
+        # Implement trading logic based on action
+        self.current_step += 1
+        done = self.current_step >= len(self.data) - 1
+        reward = self._calculate_reward()
+        return self._get_observation(), reward, done, {}
+    
+    def _get_observation(self):
+        # Return current state representation
+        return self.data.iloc[self.current_step].values
+
+    def _calculate_reward(self):
+        # Calculate reward based on portfolio performance
+        return self.portfolio[-1]
+
+env = TradingEnv(transformed_data)
+#check_env(env)
+
+import torch.nn as nn
+from stable_baselines3 import PPO
+from stable_baselines3.common.policies import ActorCriticPolicy
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from stable_baselines3.common.vec_env import DummyVecEnv
+from typing import Callable, Dict, List, Tuple, Type, Union
+import torch
+
+##this is the problem
+class CustomPolicy(ActorCriticPolicy):
+    def __init__(self, observation_space, action_space, **kwargs):
+        super(CustomPolicy, self).__init__(observation_space, action_space, **kwargs)
+        
+        # Define the policy network
+        self.policy_net = nn.Sequential(
+            nn.Linear(observation_space.shape[0], 64),
+            nn.ReLU(),
+            nn.Linear(64, action_space.shape[0])
+        )
+        
+        # Define the value network
+        self.value_net = nn.Sequential(
+            nn.Linear(observation_space.shape[0], 64),
+            nn.ReLU(),
+            nn.Linear(64, 1)
+        )
+        
+    def forward(self, observations):
+        latent_policy = self.policy_net(observations)
+        latent_value = self.value_net(observations)
+        return latent_policy, latent_value
+
+model = PPO(CustomPolicy, env, verbose=1, tensorboard_log="./ppo_tensorboard/")
+model.learn(total_timesteps=100000)
+
+# Evaluate on testing data
+test_env = TradingEnv(test_data)
+obs = test_env.reset()
+done = False
+while not done:
+    action, _ = model.predict(obs)
+    obs, reward, done, _ = test_env.step(action)
+##this is the problem
+
+print(f"\nFinal Portfolio Value (Testing): {test_env.portfolio[-1]:.2f}")
+
